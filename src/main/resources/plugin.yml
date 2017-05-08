@@ -1,0 +1,22 @@
+name: OrdosSpawnerLimit
+main: org.landofordos.ordosspawnerlimit.OrdosSpawnerLimit
+version: 0.6
+commands:
+   ordosspawnerlimit:
+      description: OrdosSpawnerLimit base command.
+      usage: /ordosspawnerlimit [reload/toggle] [spawners/natural]
+      permission: ordosspawnerlimit.*
+      permission-message: You don't have permission to use this.
+permissions:
+    ordosspawnerlimit.*:
+        description: Gives access to all OrdosSpawnerLimit commands
+        default: op
+        children:
+            ordosspawnerlimit.reloadconfig: true 
+            ordosspawnerlimit.ingametoggle: true
+    ordosspawnerlimit.reloadconfig:
+        description: Allows access to reloading the plugin's configuration file
+        default: op
+    ordosspawnerlimit.ingametoggle:
+        description: Allows a player to toggle the plugin on and off in-game
+        default: op

@@ -1,0 +1,10 @@
+# Don't touch the value of firstrun!
+firstrun: true
+verboselogging: false
+# spawner limits
+limitSpawners: true
+spawnLimit: 10
+# natural spawn limits
+limitNatural: true
+spawnListSize: 100
+denyVolume: 7
