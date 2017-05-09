@@ -46,7 +46,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
     private List<SpawnerData> spawners = null;
     //
     private boolean limitNaturalSpawns;
-    private CircularArrayRing<SpawnerData> spawnList = null;
+    private Ring<SpawnerData> spawnList = null;
     private int denyVolume;
     private int denyVal;
     //
@@ -326,7 +326,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
         }
 
         // if value has reached 0 destroy spawner.
-        if (record.getSpawnsRemaining() == 1) {
+        if (record.getSpawnsRemaining() == 0) {
             spawnerBlock.setType(Material.AIR);
             logger.info("Spawner at " + spawn.toString() + " has been destroyed.");
             spawners.remove(record);
