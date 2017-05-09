@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +43,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
     //
     private boolean limitSpawnerSpawns;
     private int spawnLimit;
-    private ArrayList<SpawnerData> spawners;
+    private List<SpawnerData> spawners = null;
     //
     private boolean limitNaturalSpawns;
     private CircularArrayRing<SpawnerData> spawnList = null;
@@ -75,6 +76,9 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
         final boolean firstrun = config.getBoolean("firstrun");
         if (firstrun) {
             // Whatever first run initialisation is required
+            spawners = new ArrayList<>();
+            saveSpawnerData();
+
             config.set("firstrun", false);
             this.saveConfig();
             if (verbose) {
@@ -114,12 +118,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
         // ====== CONFIG LOAD FINISH ======
         //
         // initialise spawner data
-        if (firstrun) {
-            spawners = new ArrayList<>();
-            saveSpawnerData();
-        } else {
-            loadSpawnerData();
-        }
+        loadSpawnerData();
         if (spawners == null) {
             spawners = new ArrayList<>();
             saveSpawnerData();
@@ -128,7 +127,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
         server.getPluginManager().registerEvents(this, this);
     }
 
-    public void loadSpawnerData() {
+    private void loadSpawnerData() {
         if (verbose) {
             logger.info("Loading data...");
         }
@@ -152,7 +151,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
             } catch (StreamCorruptedException sce) {
                 try {
                     Thread.sleep(250);
-                } catch (InterruptedException e) {
+                } catch (InterruptedException ignored) {
                 }
             } catch (EOFException e) {
                 // do nothing
@@ -166,7 +165,7 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
         }
     }
 
-    public void saveSpawnerData() {
+    private void saveSpawnerData() {
         try {
             if (verbose) {
                 logger.info("Saving data...");
@@ -256,50 +255,17 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
                     for (int x = -4; x < 5; x++) {
                         for (int y = -1; y < 2; y++) {
                             for (int z = -4; z < 5; z++) {
-                                Block checkLocation = spawnLocation.getWorld().getBlockAt(
+                                Block checkBlock = spawnLocation.getWorld().getBlockAt(
                                         new Location(spawnLocation.getWorld(), spawnLocation.getX() + x, spawnLocation.getY() + y,
                                                 spawnLocation.getZ() + z));
                                 // if spawner found check spawned creature matches creature spawned type.
-                                if (checkLocation.getType().equals(Material.MOB_SPAWNER)) {
-                                    CreatureSpawner spawner = (CreatureSpawner) checkLocation.getState();
+                                if (checkBlock.getType().equals(Material.MOB_SPAWNER)) {
+                                    CreatureSpawner spawner = (CreatureSpawner) checkBlock.getState();
                                     EntityType spawnType = spawner.getSpawnedType();
                                     if (spawnType.equals(event.getEntityType())) {
-                                        SpawnerData checkPosition = new SpawnerData((int) spawnLocation.getX() + x,
+                                        SpawnerData spawnSpawner = new SpawnerData((int) spawnLocation.getX() + x,
                                                 (int) spawnLocation.getY() + y, (int) spawnLocation.getZ() + z, spawnLimit);
-                                        // check for previous data
-                                        if (spawners.contains(checkPosition)) {
-                                            int previousValue = 1;
-                                            SpawnerData record = null;
-                                            for (SpawnerData sd : spawners) {
-                                                if (sd.equals(checkPosition)) {
-                                                    record = sd;
-                                                    previousValue = record.getSpawnsRemaining();
-                                                }
-                                            }
-                                            // if value has reached null destroy spawner.
-                                            if (previousValue == (1)) {
-                                                checkLocation.setType(Material.AIR);
-                                                logger.info("Spawner at " + checkPosition.toString() + " has been destroyed.");
-                                                spawners.remove(record);
-                                                saveSpawnerData();
-                                                return;
-                                            } else {
-                                                record.setSpawnsRemaining(previousValue - 1);
-                                                if (verbose) {
-                                                    logger.info("Spawner at " + checkPosition.toString() + " spawned mob. "
-                                                            + (previousValue - 1) + " spawns remain.");
-                                                }
-                                                saveSpawnerData();
-                                                return;
-                                            }
-                                        } else {
-                                            spawners.add(checkPosition);
-                                            if (verbose) {
-                                                logger.info("Now tracking new spawner at " + checkPosition.toString() + ".");
-                                            }
-                                            saveSpawnerData();
-                                            return;
-                                        }
+                                        processNewSpawn(spawnSpawner, checkBlock);
                                     }
                                 }
                             }
@@ -334,11 +300,38 @@ public class OrdosSpawnerLimit extends JavaPlugin implements Listener {
                     SpawnerData spawnPosition = new SpawnerData((int) spawnLocation.getX(), (int) spawnLocation.getY(),
                             (int) spawnLocation.getZ(), 1);
                     /*
-					 * if (verbose) { logger.info("Natural spawn added at " + spawnPosition.toString() + "."); }
+                     * if (verbose) { logger.info("Natural spawn added at " + spawnPosition.toString() + "."); }
 					 */
                     spawnList.add(spawnPosition);
                 }
             }
         }
+    }
+
+    private void processNewSpawn(SpawnerData spawn, Block spawnerBlock) {
+        // check for previous data
+        if (!spawners.contains(spawn)) {
+            spawners.add(spawn);
+            if (verbose) {
+                logger.info("Now tracking new spawner at " + spawn.toString() + ".");
+            }
+        }
+
+        SpawnerData record = spawners.get(spawners.indexOf(spawn));
+
+        record.setSpawnsRemaining(record.getSpawnsRemaining() - 1);
+        if (verbose) {
+            logger.info("Spawner at " + spawn.toString() + " spawned mob. "
+                    + record.getSpawnsRemaining() + " spawns remain.");
+        }
+
+        // if value has reached 0 destroy spawner.
+        if (record.getSpawnsRemaining() == 1) {
+            spawnerBlock.setType(Material.AIR);
+            logger.info("Spawner at " + spawn.toString() + " has been destroyed.");
+            spawners.remove(record);
+        }
+
+        saveSpawnerData();
     }
 }

@@ -7,9 +7,6 @@ import java.util.NoSuchElementException;
 
 public class CircularArrayRing<E> extends AbstractCollection<E> implements Ring<E> {
 
-    // This code taken from work done for COMP1201 Tutorial 2
-    // No credit claimed for this module
-
     private Object[] arrRing;
     private int itemCount = 0;
     private int head = 0;
@@ -33,7 +30,7 @@ public class CircularArrayRing<E> extends AbstractCollection<E> implements Ring<
 
     private class RingIterator implements Iterator<E> {
 
-        private CircularArrayRing<E> theRing;
+        private final CircularArrayRing<E> theRing;
         private int index;
 
         public RingIterator(CircularArrayRing<E> theRing) {

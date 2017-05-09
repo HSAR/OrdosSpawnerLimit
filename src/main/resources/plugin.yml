@@ -1,6 +1,6 @@
 name: OrdosSpawnerLimit
 main: org.landofordos.ordosspawnerlimit.OrdosSpawnerLimit
-version: 0.6
+version: 0.6.1
 commands:
    ordosspawnerlimit:
       description: OrdosSpawnerLimit base command.
